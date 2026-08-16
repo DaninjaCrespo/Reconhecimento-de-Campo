@@ -12,7 +12,7 @@
         
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* HEADER */
+        /* HEADER & TOAST */
         .scout-header {
             position: absolute; top: 0; left: 0; width: 100%;
             background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
@@ -21,7 +21,14 @@
         }
         .gps-status { font-family: monospace; font-size: 11px; color: #fff; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
 
-        /* BARRA INFERIOR DE AÇÕES (MOBILE) */
+        #toast-aviso {
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            background: #d4af37; color: #000; padding: 10px 20px; border-radius: 8px;
+            font-weight: bold; font-size: 14px; z-index: 3000; display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center;
+        }
+
+        /* BARRA INFERIOR DE AÇÕES */
         .scout-bottom-bar {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: #111; border-top: 2px solid #333;
@@ -78,14 +85,17 @@
         .foto-preview.has-image span { display: none; }
         
         .modal-botoes { display: flex; gap: 10px; margin-top: 10px; }
-        .btn-modal { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; }
+        .btn-modal { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
         .btn-cancel { background: #333; color: white; }
         .btn-save { background: #00ff66; color: black; }
+        .btn-delete { background: #ff4444; color: white; padding: 8px; font-size: 12px; border:none; border-radius: 4px; cursor: pointer;}
+        .btn-edit { background: #00bbff; color: black; padding: 8px; font-size: 12px; border:none; border-radius: 4px; cursor: pointer;}
 
         /* RELATÓRIO */
-        .relatorio-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .relatorio-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
         .relatorio-card img { width: 100%; border-radius: 4px; margin-top: 8px; }
-        .relatorio-meta { font-family: monospace; font-size: 10px; color: #aaa; }
+        .relatorio-meta { font-family: monospace; font-size: 10px; color: #aaa; margin-top: 4px; }
+        .relatorio-acoes { display: flex; gap: 8px; margin-top: 10px; }
 
     </style>
 </head>
@@ -96,8 +106,13 @@
             <strong style="text-shadow: 1px 1px 0 #000;">AGÊNCIA DE BUSCA</strong><br>
             <span style="font-size:12px; color:#fff; text-shadow: 1px 1px 0 #000;">Reconhecimento Tático</span>
         </div>
-        <div id="gps-status" class="gps-status">GPS: Aguardando...</div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+            <div id="gps-status" class="gps-status">GPS: Aguardando...</div>
+            <div id="compass-status" class="gps-status" style="margin-top:4px; font-size:9px; background:rgba(0,0,0,0.8);">Olhando: --°</div>
+        </div>
     </div>
+
+    <div id="toast-aviso">Salvo com sucesso!</div>
 
     <!-- O Mapa -->
     <div id="mapa-campo"></div>
@@ -115,10 +130,10 @@
         </button>
     </div>
 
-    <!-- Modal Novo Pino -->
+    <!-- Modal Novo/Editar Pino -->
     <div id="modal-pino" class="modal-overlay">
         <div class="modal-content">
-            <h3>📍 Registrar Anomalia</h3>
+            <h3 id="modal-pino-titulo-ui">📍 Registrar Ponto</h3>
             
             <label>Evidência Fotográfica:</label>
             <input type="file" id="input-foto" accept="image/*" capture="environment" style="display:none;" onchange="processarFoto(event)">
@@ -127,19 +142,20 @@
                 <img id="img-result" src="">
             </div>
 
-            <label>Tipo de Evento:</label>
+            <label>Categoria:</label>
             <select id="pino-tipo">
                 <option value="#00bbff">História / Missão</option>
                 <option value="#ff0000">Inimigo / Assustador</option>
                 <option value="#a855f7">Lugar para Espectrômetro</option>
                 <option value="#d4af37">Possível Loja / NPC</option>
                 <option value="#00ff66">Poste / Refúgio</option>
+                <option value="#ffffff">Outros / Anotação</option>
             </select>
 
             <label>Título Rápido:</label>
             <input type="text" id="pino-titulo" placeholder="Ex: Beco Escuro">
 
-            <label>Notas de Campo (O que sentiu aqui?):</label>
+            <label>Notas de Campo:</label>
             <textarea id="pino-desc" placeholder="Muito mato. Ideal para o cachorro pular na tela."></textarea>
 
             <div class="modal-botoes">
@@ -155,14 +171,17 @@
             <h3>📋 Relatório da Missão</h3>
             
             <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                <button class="btn-modal" style="background:#00bbff; color:#000;" onclick="exportarRelatorioHTML()">📤 Baixar Relatório Completo</button>
-                <button class="btn-modal btn-cancel" onclick="limparTudo()">🗑️ Resetar Tudo</button>
+                <button class="btn-modal" style="background:#00bbff; color:#000;" onclick="exportarRelatorioHTML()">📤 Baixar Documento HTML</button>
             </div>
 
             <div id="lista-rotas" style="margin-bottom: 15px;"></div>
             <div id="lista-pinos"></div>
 
-            <button class="btn-modal btn-cancel" style="margin-top:auto;" onclick="document.getElementById('modal-relatorio').style.display='none'">Voltar ao Mapa</button>
+            <div style="border-top: 1px solid #444; padding-top: 15px; margin-top:10px; text-align:center;">
+                <button class="btn-modal btn-cancel" style="background:transparent; color:#ff4444; text-decoration:underline;" onclick="limparTudo()">Apagar todo o Banco de Dados</button>
+            </div>
+
+            <button class="btn-modal btn-cancel" style="margin-top:10px;" onclick="document.getElementById('modal-relatorio').style.display='none'">Voltar ao Mapa</button>
         </div>
     </div>
 
@@ -172,7 +191,10 @@
         // ESTADO GLOBAL
         let map;
         let meuMarcador = null;
-        let minhaLocalizacao = [-23.7770, -46.3005]; // Paranapiacaba Padrão
+        let minhaLocalizacao = [-23.7770, -46.3005]; 
+        let precisaoAtual = 0;
+        let direcaoAtual = 0;
+        
         let pinosData = [];
         let rotasData = [];
         let pinoLayer = L.layerGroup();
@@ -186,8 +208,9 @@
         let distanciaRotaAtual = 0;
         let lastPosForDistance = null;
 
-        // Foto Comprimida Atual
+        // Estado do Formulário
         let fotoBase64Atual = "";
+        let editandoPinoId = null; 
 
         // INICIALIZAÇÃO
         window.onload = () => {
@@ -202,20 +225,39 @@
 
             carregarMemoria();
             iniciarGPS();
+            iniciarBussola();
         };
 
-        // 1. SISTEMA DE GPS REAL
+        // 1. SISTEMA DE BÚSSOLA
+        function iniciarBussola() {
+            window.addEventListener('deviceorientationabsolute', handlerOrientation, true);
+            window.addEventListener('deviceorientation', handlerOrientation, true);
+        }
+
+        function handlerOrientation(e) {
+            let heading = null;
+            if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+                heading = e.webkitCompassHeading;
+            } else if (e.alpha !== undefined && e.alpha !== null) {
+                heading = (360 - e.alpha) % 360;
+            }
+            if (heading !== null) {
+                direcaoAtual = Math.round(heading);
+                document.getElementById('compass-status').innerText = `Olhando: ${direcaoAtual}°`;
+            }
+        }
+
+        // 2. SISTEMA DE GPS REAL
         function iniciarGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
                     (pos) => {
                         minhaLocalizacao = [pos.coords.latitude, pos.coords.longitude];
-                        const accuracy = pos.coords.accuracy;
+                        precisaoAtual = pos.coords.accuracy;
                         
-                        document.getElementById('gps-status').innerText = `GPS: ±${Math.round(accuracy)}m`;
-                        document.getElementById('gps-status').style.color = accuracy < 20 ? '#00ff66' : '#ffaa00';
+                        document.getElementById('gps-status').innerText = `GPS: ±${Math.round(precisaoAtual)}m`;
+                        document.getElementById('gps-status').style.color = precisaoAtual < 20 ? '#00ff66' : '#ffaa00';
 
-                        // Atualiza o pino do jogador
                         if (!meuMarcador) {
                             meuMarcador = L.circleMarker(minhaLocalizacao, {
                                 radius: 6, fillColor: '#00bbff', color: '#fff', weight: 2, fillOpacity: 1
@@ -225,7 +267,6 @@
                             meuMarcador.setLatLng(minhaLocalizacao);
                         }
 
-                        // Lógica de gravação de Rota
                         if (isGravandoRota) {
                             caminhoAtual.push(minhaLocalizacao);
                             linhaAtual.setLatLngs(caminhoAtual);
@@ -235,7 +276,6 @@
                             }
                             lastPosForDistance = minhaLocalizacao;
                             
-                            // Mostra a distância em tempo real no botão
                             document.getElementById('texto-rota').innerText = `${Math.round(distanciaRotaAtual)}m (Gravando)`;
                         }
                     },
@@ -250,18 +290,69 @@
             }
         }
 
-        // 2. SISTEMA DE MARCAR PONTO E FOTOS
+        function mostrarAviso(msg) {
+            const toast = document.getElementById('toast-aviso');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        // 3. GERENCIAMENTO DE PINOS (CRIAR, EDITAR, DELETAR)
         function abrirModalPino() {
-            if (!meuMarcador) {
-                alert("Aguarde o GPS te localizar primeiro!");
-                return;
-            }
+            if (!meuMarcador) { alert("Aguarde o GPS te localizar primeiro!"); return; }
+            
+            editandoPinoId = null;
+            document.getElementById('modal-pino-titulo-ui').innerText = "📍 Registrar Ponto";
             document.getElementById('pino-titulo').value = '';
             document.getElementById('pino-desc').value = '';
+            document.getElementById('pino-tipo').selectedIndex = 0;
+            
             fotoBase64Atual = "";
             document.getElementById('foto-preview').classList.remove('has-image');
             document.getElementById('img-result').src = "";
+            
             document.getElementById('modal-pino').style.display = 'flex';
+        }
+
+        function editarPino(id) {
+            const pino = pinosData.find(p => p.id === id);
+            if (!pino) return;
+
+            editandoPinoId = id;
+            document.getElementById('modal-pino-titulo-ui').innerText = "✏️ Editar Ponto";
+            document.getElementById('pino-titulo').value = pino.titulo;
+            document.getElementById('pino-desc').value = pino.desc;
+            document.getElementById('pino-tipo').value = pino.cor;
+            
+            fotoBase64Atual = pino.foto || "";
+            if (fotoBase64Atual) {
+                document.getElementById('img-result').src = fotoBase64Atual;
+                document.getElementById('foto-preview').classList.add('has-image');
+            } else {
+                document.getElementById('foto-preview').classList.remove('has-image');
+                document.getElementById('img-result').src = "";
+            }
+
+            document.getElementById('modal-relatorio').style.display = 'none';
+            document.getElementById('modal-pino').style.display = 'flex';
+        }
+
+        function deletarPino(id) {
+            if (confirm("Tem certeza que quer apagar esse ponto?")) {
+                pinosData = pinosData.filter(p => p.id !== id);
+                salvarMemoria();
+                desenharPinosMapa();
+                abrirMenu(); // Atualiza a lista
+            }
+        }
+
+        function deletarRota(id) {
+            if (confirm("Apagar essa rota gravada?")) {
+                rotasData = rotasData.filter(r => r.id !== id);
+                salvarMemoria();
+                desenharRotasMapa();
+                abrirMenu(); // Atualiza a lista
+            }
         }
 
         function fecharModalPino() {
@@ -276,17 +367,14 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // COMPRESSÃO DA IMAGEM PARA CABER NA MEMÓRIA OFFLINE
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600; // Reduz a resolução para 600px de largura
+                    const MAX_WIDTH = 600;
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
                     
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    // Transforma em JPEG qualidade 60%
                     fotoBase64Atual = canvas.toDataURL('image/jpeg', 0.6); 
                     
                     document.getElementById('img-result').src = fotoBase64Atual;
@@ -298,24 +386,48 @@
         }
 
         function salvarPino() {
-            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const pino = {
-                id: Date.now(),
-                tag: `P${pinosData.length + 1}`,
-                lat: minhaLocalizacao[0],
-                lng: minhaLocalizacao[1],
-                cor: document.getElementById('pino-tipo').value,
-                tipo: document.getElementById('pino-tipo').options[document.getElementById('pino-tipo').selectedIndex].text,
-                titulo: document.getElementById('pino-titulo').value || 'Sem Título',
-                desc: document.getElementById('pino-desc').value,
-                hora: horaAtual,
-                foto: fotoBase64Atual // Foto comprimida
-            };
+            try {
+                const comboTipo = document.getElementById('pino-tipo');
+                const textTipo = comboTipo.options[comboTipo.selectedIndex].text;
+                
+                if (editandoPinoId) {
+                    // Atualiza pino existente
+                    let p = pinosData.find(x => x.id === editandoPinoId);
+                    if (p) {
+                        p.cor = comboTipo.value;
+                        p.tipo = textTipo;
+                        p.titulo = document.getElementById('pino-titulo').value || 'Sem Título';
+                        p.desc = document.getElementById('pino-desc').value;
+                        p.foto = fotoBase64Atual;
+                    }
+                    mostrarAviso("Ponto editado com sucesso!");
+                } else {
+                    // Cria pino novo
+                    const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const pino = {
+                        id: Date.now(),
+                        tag: `P${pinosData.length + 1}`,
+                        lat: minhaLocalizacao[0],
+                        lng: minhaLocalizacao[1],
+                        precisao: Math.round(precisaoAtual),
+                        direcao: direcaoAtual,
+                        cor: comboTipo.value,
+                        tipo: textTipo,
+                        titulo: document.getElementById('pino-titulo').value || 'Sem Título',
+                        desc: document.getElementById('pino-desc').value,
+                        hora: horaAtual,
+                        foto: fotoBase64Atual
+                    };
+                    pinosData.push(pino);
+                    mostrarAviso("Ponto salvo com sucesso!");
+                }
 
-            pinosData.push(pino);
-            salvarMemoria();
-            desenharPinosMapa();
-            fecharModalPino();
+                salvarMemoria();
+                desenharPinosMapa();
+                fecharModalPino();
+            } catch(e) {
+                alert("Erro ao salvar: " + e.message);
+            }
         }
 
         function desenharPinosMapa() {
@@ -325,15 +437,11 @@
                     radius: 8, fillColor: p.cor, color: '#fff', weight: 2, fillOpacity: 0.9
                 });
                 marker.bindTooltip(p.tag, { permanent: true, direction: 'bottom', className: 'gps-status', offset: [0,5] });
-                
-                let popupStr = `<b>${p.tag} - ${p.titulo}</b><br><span style="font-size:10px;">${p.hora}</span>`;
-                if(p.foto) popupStr += `<br><img src="${p.foto}" style="width:100px; border-radius:4px; margin-top:5px;">`;
-                marker.bindPopup(popupHTML);
                 pinoLayer.addLayer(marker);
             });
         }
 
-        // 3. SISTEMA DE GRAVAÇÃO DE TRAJETOS (PACING)
+        // 4. SISTEMA DE GRAVAÇÃO DE TRAJETOS (PACING)
         function toggleRota() {
             if (!meuMarcador) { alert("Aguarde o GPS te localizar!"); return; }
 
@@ -342,7 +450,6 @@
             const texto = document.getElementById('texto-rota');
 
             if (!isGravandoRota) {
-                // COMEÇA A GRAVAR
                 isGravandoRota = true;
                 caminhoAtual = [minhaLocalizacao];
                 distanciaRotaAtual = 0;
@@ -355,7 +462,6 @@
                 icone.innerText = '⏹️';
                 texto.innerText = '0m (Gravando)';
             } else {
-                // PARA DE GRAVAR
                 isGravandoRota = false;
                 const tempoTotalMin = ((Date.now() - tempoInicioRota) / 1000 / 60).toFixed(1);
                 
@@ -374,7 +480,7 @@
                 icone.innerText = '🔴';
                 texto.innerText = 'GRAVAR CAMINHO';
                 
-                alert(`🏁 Rota ${rotaSalva.tag} Finalizada!\nDistância: ${rotaSalva.distancia} metros.\nTempo Real: ${rotaSalva.tempo} minutos.`);
+                mostrarAviso(`Rota ${rotaSalva.tag} Finalizada!`);
             }
         }
 
@@ -385,7 +491,7 @@
             });
         }
 
-        // 4. MEMÓRIA OFFLINE E RELATÓRIOS
+        // 5. MEMÓRIA OFFLINE E RELATÓRIOS
         function salvarMemoria() {
             localStorage.setItem('scout_pinos', JSON.stringify(pinosData));
             localStorage.setItem('scout_rotas', JSON.stringify(rotasData));
@@ -401,10 +507,11 @@
         }
 
         function limparTudo() {
-            if (confirm("Apagar todo o diário do celular? Isso exclui fotos e trajetos.")) {
+            if (confirm("CUIDADO: Apagar todo o diário do celular? Isso exclui fotos e trajetos para sempre.")) {
                 pinosData = []; rotasData = []; salvarMemoria();
                 pinoLayer.clearLayers(); rotaLayer.clearLayers();
                 document.getElementById('modal-relatorio').style.display='none';
+                mostrarAviso("Banco de dados resetado.");
             }
         }
 
@@ -412,25 +519,33 @@
             const divPinos = document.getElementById('lista-pinos');
             const divRotas = document.getElementById('lista-rotas');
             
-            divPinos.innerHTML = "<h4 style='color:#d4af37; border-bottom:1px solid #444; padding-bottom:5px;'>📍 PONTOS MARCADOS</h4>";
+            divPinos.innerHTML = "<h4 style='color:#d4af37; border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:10px;'>📍 PONTOS MARCADOS</h4>";
             pinosData.forEach(p => {
                 divPinos.innerHTML += `
                     <div class="relatorio-card">
                         <strong style="color:${p.cor}">${p.tag} - ${p.titulo}</strong>
                         <div class="relatorio-meta">Tipo: ${p.tipo} | Horário: ${p.hora}</div>
+                        <div class="relatorio-meta">Precisão GPS: ±${p.precisao || '?'}m | Direção (Câmera): ${p.direcao || '?'}°</div>
                         <p style="font-size:12px; margin:5px 0;">"${p.desc}"</p>
                         ${p.foto ? `<img src="${p.foto}">` : ''}
+                        <div class="relatorio-acoes">
+                            <button class="btn-edit" onclick="editarPino(${p.id})">✏️ Editar</button>
+                            <button class="btn-delete" onclick="deletarPino(${p.id})">🗑️ Apagar</button>
+                        </div>
                     </div>
                 `;
             });
 
-            divRotas.innerHTML = "<h4 style='color:#ff4444; border-bottom:1px solid #444; padding-bottom:5px;'>🔴 TRAJETOS GRAVADOS</h4>";
+            divRotas.innerHTML = "<h4 style='color:#ff4444; border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:10px;'>🔴 TRAJETOS GRAVADOS</h4>";
             if (rotasData.length === 0) divRotas.innerHTML += "<span style='font-size:12px; color:#aaa;'>Nenhuma rota gravada.</span>";
             rotasData.forEach(r => {
                 divRotas.innerHTML += `
                     <div class="relatorio-card" style="border-color:#ff4444;">
                         <strong>Trajeto ${r.tag}</strong>
                         <div class="relatorio-meta">Distância: ${r.distancia} metros | Tempo a pé: ${r.tempo} minutos</div>
+                        <div class="relatorio-acoes">
+                            <button class="btn-delete" onclick="deletarRota(${r.id})">🗑️ Apagar</button>
+                        </div>
                     </div>
                 `;
             });
@@ -438,14 +553,14 @@
             document.getElementById('modal-relatorio').style.display = 'flex';
         }
 
-        // 5. EXPORTAR DOCUMENTO FINAL DO DIRETOR
+        // 6. EXPORTAR DOCUMENTO FINAL
         function exportarRelatorioHTML() {
             let htmlStr = `
             <html><head><meta charset="utf-8"><title>Relatório de Scouting - Paranapiacaba</title>
             <style>body{font-family:sans-serif; background:#f4f4f4; color:#333; max-width:800px; margin:0 auto; padding:20px;}
             .card{background:white; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
-            img{max-width:100%; height:auto; border-radius:4px;}
-            h1{color:#aa0000;}</style></head><body>
+            img{max-width:100%; height:auto; border-radius:4px; margin-top:10px;}
+            h1{color:#aa0000;} .meta{font-family:monospace; color:#666; font-size:12px;}</style></head><body>
             <h1>Relatório Tático de Campo</h1><p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
             <h2>🔴 Trajetos e Tempos (Pacing)</h2>
             `;
@@ -459,15 +574,15 @@
                 htmlStr += `
                 <div class="card">
                     <h3 style="margin:0; color:${p.cor}">${p.tag} - ${p.titulo}</h3>
-                    <small>Horário: ${p.hora} | Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</small>
-                    <p>${p.desc}</p>
+                    <div class="meta">Horário: ${p.hora} | Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                    <div class="meta">Erro de GPS: ±${p.precisao || '?'}m | Direção da Foto: ${p.direcao || '?'}°</div>
+                    <p><b>Notas de Campo:</b> ${p.desc}</p>
                     ${p.foto ? `<img src="${p.foto}">` : ''}
                 </div>`;
             });
 
             htmlStr += `</body></html>`;
 
-            // Baixa o arquivo visual pro seu computador/celular
             const blob = new Blob([htmlStr], { type: "text/html" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -476,6 +591,7 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            mostrarAviso("Download do Relatório Iniciado!");
         }
     </script>
 </body>
