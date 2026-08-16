@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scouting - Sombras de Paranapiacaba</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #050505; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+        #mapa-campo { height: 100vh; width: 100vw; z-index: 1; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* HEADER */
+        .scout-header {
+            position: absolute; top: 0; left: 0; width: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            color: #00ff66; padding: 15px; z-index: 1000; pointer-events: none;
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .gps-status { font-family: monospace; font-size: 11px; color: #fff; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
+
+        /* BARRA INFERIOR DE AÇÕES (MOBILE) */
+        .scout-bottom-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: #111; border-top: 2px solid #333;
+            padding: 15px 10px 25px 10px; z-index: 1000;
+            display: flex; gap: 10px; justify-content: center;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+        }
+
+        .btn-acao {
+            flex: 1; height: 60px; border-radius: 12px; border: none;
+            font-weight: bold; font-size: 14px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer; transition: 0.1s;
+        }
+        .btn-acao:active { transform: scale(0.95); }
+        .btn-acao span { font-size: 20px; margin-bottom: 2px; }
+
+        .btn-marcar { background: #d4af37; color: #000; box-shadow: 0 4px 0 #997a15; }
+        .btn-rota { background: #ff4444; color: #fff; box-shadow: 0 4px 0 #aa0000; }
+        .btn-rota.gravando { background: #ffaa00; box-shadow: 0 4px 0 #cc7700; animation: pulseGravar 1s infinite alternate; }
+        .btn-menu { background: #333; color: #fff; box-shadow: 0 4px 0 #111; max-width: 80px; }
+
+        @keyframes pulseGravar { from { opacity: 1; } to { opacity: 0.6; } }
+
+        /* MODAIS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            z-index: 2000; display: none; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #1a1a1a; width: 90%; max-width: 400px; max-height: 90vh;
+            border: 2px solid #555; border-radius: 12px; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px; overflow-y: auto; color: white;
+        }
+
+        .modal-content h3 { margin: 0 0 10px 0; color: #d4af37; text-align: center; font-size: 18px; }
+        
+        label { font-size: 12px; color: #aaa; font-weight: bold; margin-bottom: -8px; }
+        input, select, textarea {
+            width: 100%; padding: 12px; background: #0a0a0a; color: #fff;
+            border: 1px solid #444; border-radius: 6px; font-size: 14px; outline: none;
+        }
+        textarea { min-height: 80px; resize: none; }
+        input:focus, textarea:focus, select:focus { border-color: #d4af37; }
+
+        /* FOTO UPLOAD */
+        .foto-preview {
+            width: 100%; height: 150px; background: #050505; border: 2px dashed #444;
+            border-radius: 8px; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; cursor: pointer; color: #666; font-size: 12px; position: relative;
+        }
+        .foto-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .foto-preview.has-image img { display: block; }
+        .foto-preview.has-image span { display: none; }
+        
+        .modal-botoes { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-modal { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; }
+        .btn-cancel { background: #333; color: white; }
+        .btn-save { background: #00ff66; color: black; }
+
+        /* RELATÓRIO */
+        .relatorio-card { background: #222; border: 1px solid #444; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .relatorio-card img { width: 100%; border-radius: 4px; margin-top: 8px; }
+        .relatorio-meta { font-family: monospace; font-size: 10px; color: #aaa; }
+
+    </style>
+</head>
+<body>
+
+    <div class="scout-header">
+        <div>
+            <strong style="text-shadow: 1px 1px 0 #000;">AGÊNCIA DE BUSCA</strong><br>
+            <span style="font-size:12px; color:#fff; text-shadow: 1px 1px 0 #000;">Reconhecimento Tático</span>
+        </div>
+        <div id="gps-status" class="gps-status">GPS: Aguardando...</div>
+    </div>
+
+    <!-- O Mapa -->
+    <div id="mapa-campo"></div>
+
+    <!-- Barra Inferior -->
+    <div class="scout-bottom-bar">
+        <button class="btn-acao btn-marcar" onclick="abrirModalPino()">
+            <span>📍</span> MARCAR PONTO
+        </button>
+        <button id="btn-rota" class="btn-acao btn-rota" onclick="toggleRota()">
+            <span id="icone-rota">🔴</span> <div id="texto-rota">GRAVAR CAMINHO</div>
+        </button>
+        <button class="btn-acao btn-menu" onclick="abrirMenu()">
+            <span>📋</span> DADOS
+        </button>
+    </div>
+
+    <!-- Modal Novo Pino -->
+    <div id="modal-pino" class="modal-overlay">
+        <div class="modal-content">
+            <h3>📍 Registrar Anomalia</h3>
+            
+            <label>Evidência Fotográfica:</label>
+            <input type="file" id="input-foto" accept="image/*" capture="environment" style="display:none;" onchange="processarFoto(event)">
+            <div class="foto-preview" id="foto-preview" onclick="document.getElementById('input-foto').click()">
+                <span>📸 Tocar para Câmera</span>
+                <img id="img-result" src="">
+            </div>
+
+            <label>Tipo de Evento:</label>
+            <select id="pino-tipo">
+                <option value="#00bbff">História / Missão</option>
+                <option value="#ff0000">Inimigo / Assustador</option>
+                <option value="#a855f7">Lugar para Espectrômetro</option>
+                <option value="#d4af37">Possível Loja / NPC</option>
+                <option value="#00ff66">Poste / Refúgio</option>
+            </select>
+
+            <label>Título Rápido:</label>
+            <input type="text" id="pino-titulo" placeholder="Ex: Beco Escuro">
+
+            <label>Notas de Campo (O que sentiu aqui?):</label>
+            <textarea id="pino-desc" placeholder="Muito mato. Ideal para o cachorro pular na tela."></textarea>
+
+            <div class="modal-botoes">
+                <button class="btn-modal btn-cancel" onclick="fecharModalPino()">Cancelar</button>
+                <button class="btn-modal btn-save" onclick="salvarPino()">Salvar no Diário</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Relatório Geral -->
+    <div id="modal-relatorio" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3>📋 Relatório da Missão</h3>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                <button class="btn-modal" style="background:#00bbff; color:#000;" onclick="exportarRelatorioHTML()">📤 Baixar Relatório Completo</button>
+                <button class="btn-modal btn-cancel" onclick="limparTudo()">🗑️ Resetar Tudo</button>
+            </div>
+
+            <div id="lista-rotas" style="margin-bottom: 15px;"></div>
+            <div id="lista-pinos"></div>
+
+            <button class="btn-modal btn-cancel" style="margin-top:auto;" onclick="document.getElementById('modal-relatorio').style.display='none'">Voltar ao Mapa</button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ESTADO GLOBAL
+        let map;
+        let meuMarcador = null;
+        let minhaLocalizacao = [-23.7770, -46.3005]; // Paranapiacaba Padrão
+        let pinosData = [];
+        let rotasData = [];
+        let pinoLayer = L.layerGroup();
+        let rotaLayer = L.layerGroup();
+        
+        // Estado de Gravação de Rota
+        let isGravandoRota = false;
+        let caminhoAtual = [];
+        let linhaAtual = null;
+        let tempoInicioRota = 0;
+        let distanciaRotaAtual = 0;
+        let lastPosForDistance = null;
+
+        // Foto Comprimida Atual
+        let fotoBase64Atual = "";
+
+        // INICIALIZAÇÃO
+        window.onload = () => {
+            map = L.map('mapa-campo', { zoomControl: false }).setView(minhaLocalizacao, 17);
+            
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20
+            }).addTo(map);
+
+            pinoLayer.addTo(map);
+            rotaLayer.addTo(map);
+
+            carregarMemoria();
+            iniciarGPS();
+        };
+
+        // 1. SISTEMA DE GPS REAL
+        function iniciarGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        minhaLocalizacao = [pos.coords.latitude, pos.coords.longitude];
+                        const accuracy = pos.coords.accuracy;
+                        
+                        document.getElementById('gps-status').innerText = `GPS: ±${Math.round(accuracy)}m`;
+                        document.getElementById('gps-status').style.color = accuracy < 20 ? '#00ff66' : '#ffaa00';
+
+                        // Atualiza o pino do jogador
+                        if (!meuMarcador) {
+                            meuMarcador = L.circleMarker(minhaLocalizacao, {
+                                radius: 6, fillColor: '#00bbff', color: '#fff', weight: 2, fillOpacity: 1
+                            }).addTo(map);
+                            map.setView(minhaLocalizacao, 18);
+                        } else {
+                            meuMarcador.setLatLng(minhaLocalizacao);
+                        }
+
+                        // Lógica de gravação de Rota
+                        if (isGravandoRota) {
+                            caminhoAtual.push(minhaLocalizacao);
+                            linhaAtual.setLatLngs(caminhoAtual);
+
+                            if (lastPosForDistance) {
+                                distanciaRotaAtual += map.distance(lastPosForDistance, minhaLocalizacao);
+                            }
+                            lastPosForDistance = minhaLocalizacao;
+                            
+                            // Mostra a distância em tempo real no botão
+                            document.getElementById('texto-rota').innerText = `${Math.round(distanciaRotaAtual)}m (Gravando)`;
+                        }
+                    },
+                    (err) => {
+                        document.getElementById('gps-status').innerText = "GPS: Sem Sinal";
+                        document.getElementById('gps-status').style.color = "#ff4444";
+                    },
+                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+                );
+            } else {
+                alert("Seu navegador não suporta GPS.");
+            }
+        }
+
+        // 2. SISTEMA DE MARCAR PONTO E FOTOS
+        function abrirModalPino() {
+            if (!meuMarcador) {
+                alert("Aguarde o GPS te localizar primeiro!");
+                return;
+            }
+            document.getElementById('pino-titulo').value = '';
+            document.getElementById('pino-desc').value = '';
+            fotoBase64Atual = "";
+            document.getElementById('foto-preview').classList.remove('has-image');
+            document.getElementById('img-result').src = "";
+            document.getElementById('modal-pino').style.display = 'flex';
+        }
+
+        function fecharModalPino() {
+            document.getElementById('modal-pino').style.display = 'none';
+        }
+
+        function processarFoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // COMPRESSÃO DA IMAGEM PARA CABER NA MEMÓRIA OFFLINE
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 600; // Reduz a resolução para 600px de largura
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Transforma em JPEG qualidade 60%
+                    fotoBase64Atual = canvas.toDataURL('image/jpeg', 0.6); 
+                    
+                    document.getElementById('img-result').src = fotoBase64Atual;
+                    document.getElementById('foto-preview').classList.add('has-image');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function salvarPino() {
+            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const pino = {
+                id: Date.now(),
+                tag: `P${pinosData.length + 1}`,
+                lat: minhaLocalizacao[0],
+                lng: minhaLocalizacao[1],
+                cor: document.getElementById('pino-tipo').value,
+                tipo: document.getElementById('pino-tipo').options[document.getElementById('pino-tipo').selectedIndex].text,
+                titulo: document.getElementById('pino-titulo').value || 'Sem Título',
+                desc: document.getElementById('pino-desc').value,
+                hora: horaAtual,
+                foto: fotoBase64Atual // Foto comprimida
+            };
+
+            pinosData.push(pino);
+            salvarMemoria();
+            desenharPinosMapa();
+            fecharModalPino();
+        }
+
+        function desenharPinosMapa() {
+            pinoLayer.clearLayers();
+            pinosData.forEach(p => {
+                const marker = L.circleMarker([p.lat, p.lng], {
+                    radius: 8, fillColor: p.cor, color: '#fff', weight: 2, fillOpacity: 0.9
+                });
+                marker.bindTooltip(p.tag, { permanent: true, direction: 'bottom', className: 'gps-status', offset: [0,5] });
+                
+                let popupStr = `<b>${p.tag} - ${p.titulo}</b><br><span style="font-size:10px;">${p.hora}</span>`;
+                if(p.foto) popupStr += `<br><img src="${p.foto}" style="width:100px; border-radius:4px; margin-top:5px;">`;
+                marker.bindPopup(popupHTML);
+                pinoLayer.addLayer(marker);
+            });
+        }
+
+        // 3. SISTEMA DE GRAVAÇÃO DE TRAJETOS (PACING)
+        function toggleRota() {
+            if (!meuMarcador) { alert("Aguarde o GPS te localizar!"); return; }
+
+            const btn = document.getElementById('btn-rota');
+            const icone = document.getElementById('icone-rota');
+            const texto = document.getElementById('texto-rota');
+
+            if (!isGravandoRota) {
+                // COMEÇA A GRAVAR
+                isGravandoRota = true;
+                caminhoAtual = [minhaLocalizacao];
+                distanciaRotaAtual = 0;
+                lastPosForDistance = minhaLocalizacao;
+                tempoInicioRota = Date.now();
+                
+                linhaAtual = L.polyline(caminhoAtual, { color: '#ff4444', weight: 5, dashArray: '5, 5' }).addTo(rotaLayer);
+                
+                btn.classList.add('gravando');
+                icone.innerText = '⏹️';
+                texto.innerText = '0m (Gravando)';
+            } else {
+                // PARA DE GRAVAR
+                isGravandoRota = false;
+                const tempoTotalMin = ((Date.now() - tempoInicioRota) / 1000 / 60).toFixed(1);
+                
+                const rotaSalva = {
+                    id: Date.now(),
+                    tag: `R${rotasData.length + 1}`,
+                    caminho: [...caminhoAtual],
+                    distancia: Math.round(distanciaRotaAtual),
+                    tempo: tempoTotalMin
+                };
+                
+                rotasData.push(rotaSalva);
+                salvarMemoria();
+                
+                btn.classList.remove('gravando');
+                icone.innerText = '🔴';
+                texto.innerText = 'GRAVAR CAMINHO';
+                
+                alert(`🏁 Rota ${rotaSalva.tag} Finalizada!\nDistância: ${rotaSalva.distancia} metros.\nTempo Real: ${rotaSalva.tempo} minutos.`);
+            }
+        }
+
+        function desenharRotasMapa() {
+            rotaLayer.clearLayers();
+            rotasData.forEach(r => {
+                L.polyline(r.caminho, { color: '#aa0000', weight: 4, opacity: 0.7 }).addTo(rotaLayer);
+            });
+        }
+
+        // 4. MEMÓRIA OFFLINE E RELATÓRIOS
+        function salvarMemoria() {
+            localStorage.setItem('scout_pinos', JSON.stringify(pinosData));
+            localStorage.setItem('scout_rotas', JSON.stringify(rotasData));
+        }
+
+        function carregarMemoria() {
+            const p = localStorage.getItem('scout_pinos');
+            const r = localStorage.getItem('scout_rotas');
+            if (p) pinosData = JSON.parse(p);
+            if (r) rotasData = JSON.parse(r);
+            desenharPinosMapa();
+            desenharRotasMapa();
+        }
+
+        function limparTudo() {
+            if (confirm("Apagar todo o diário do celular? Isso exclui fotos e trajetos.")) {
+                pinosData = []; rotasData = []; salvarMemoria();
+                pinoLayer.clearLayers(); rotaLayer.clearLayers();
+                document.getElementById('modal-relatorio').style.display='none';
+            }
+        }
+
+        function abrirMenu() {
+            const divPinos = document.getElementById('lista-pinos');
+            const divRotas = document.getElementById('lista-rotas');
+            
+            divPinos.innerHTML = "<h4 style='color:#d4af37; border-bottom:1px solid #444; padding-bottom:5px;'>📍 PONTOS MARCADOS</h4>";
+            pinosData.forEach(p => {
+                divPinos.innerHTML += `
+                    <div class="relatorio-card">
+                        <strong style="color:${p.cor}">${p.tag} - ${p.titulo}</strong>
+                        <div class="relatorio-meta">Tipo: ${p.tipo} | Horário: ${p.hora}</div>
+                        <p style="font-size:12px; margin:5px 0;">"${p.desc}"</p>
+                        ${p.foto ? `<img src="${p.foto}">` : ''}
+                    </div>
+                `;
+            });
+
+            divRotas.innerHTML = "<h4 style='color:#ff4444; border-bottom:1px solid #444; padding-bottom:5px;'>🔴 TRAJETOS GRAVADOS</h4>";
+            if (rotasData.length === 0) divRotas.innerHTML += "<span style='font-size:12px; color:#aaa;'>Nenhuma rota gravada.</span>";
+            rotasData.forEach(r => {
+                divRotas.innerHTML += `
+                    <div class="relatorio-card" style="border-color:#ff4444;">
+                        <strong>Trajeto ${r.tag}</strong>
+                        <div class="relatorio-meta">Distância: ${r.distancia} metros | Tempo a pé: ${r.tempo} minutos</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('modal-relatorio').style.display = 'flex';
+        }
+
+        // 5. EXPORTAR DOCUMENTO FINAL DO DIRETOR
+        function exportarRelatorioHTML() {
+            let htmlStr = `
+            <html><head><meta charset="utf-8"><title>Relatório de Scouting - Paranapiacaba</title>
+            <style>body{font-family:sans-serif; background:#f4f4f4; color:#333; max-width:800px; margin:0 auto; padding:20px;}
+            .card{background:white; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+            img{max-width:100%; height:auto; border-radius:4px;}
+            h1{color:#aa0000;}</style></head><body>
+            <h1>Relatório Tático de Campo</h1><p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+            <h2>🔴 Trajetos e Tempos (Pacing)</h2>
+            `;
+            
+            rotasData.forEach(r => {
+                htmlStr += `<div class="card"><strong>Trajeto ${r.tag}</strong><br>Distância: ${r.distancia}m | Tempo real percorrido: ${r.tempo} min.</div>`;
+            });
+
+            htmlStr += `<h2>📍 Pontos de Interesse Mapeados</h2>`;
+            pinosData.forEach(p => {
+                htmlStr += `
+                <div class="card">
+                    <h3 style="margin:0; color:${p.cor}">${p.tag} - ${p.titulo}</h3>
+                    <small>Horário: ${p.hora} | Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</small>
+                    <p>${p.desc}</p>
+                    ${p.foto ? `<img src="${p.foto}">` : ''}
+                </div>`;
+            });
+
+            htmlStr += `</body></html>`;
+
+            // Baixa o arquivo visual pro seu computador/celular
+            const blob = new Blob([htmlStr], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "relatorio_paranapiacaba.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
