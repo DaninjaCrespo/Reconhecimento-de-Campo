@@ -300,6 +300,9 @@
                             const min = Math.floor(tempoDecorridoSegundos / 60);
                             const seg = tempoDecorridoSegundos % 60;
                             document.getElementById('texto-rota').innerText = `${Math.round(distanciaRotaAtual)}m | ${min}m${seg}s`;
+                            
+                            // NOVO: Salva estado atual para não perder em caso de bloqueio de tela/refresh acidental
+                            salvarRotaAtivaOffline();
                         }
                     },
                     (err) => {
@@ -309,6 +312,14 @@
                     { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
                 );
             } else { alert("Seu navegador não suporta GPS."); }
+        }
+
+        // NOVO: Função de backup de emergência da rota em andamento
+        function salvarRotaAtivaOffline() {
+            if (isGravandoRota) {
+                const estado = { caminhoAtual, distanciaRotaAtual, tempoInicioRota, lastPosForDistance };
+                localStorage.setItem('scout_rota_ativa', JSON.stringify(estado));
+            }
         }
 
         function abrirModalPinoManual() {
@@ -413,8 +424,11 @@
                 btn.classList.add('gravando');
                 icone.innerText = '⏹️';
                 texto.innerText = '0m | 0s';
+                salvarRotaAtivaOffline(); // Salva estado inicial imediatamente
             } else {
                 isGravandoRota = false;
+                localStorage.removeItem('scout_rota_ativa'); // Remove o backup de emergência ao pausar intencionalmente
+
                 const tempoTotalSegundos = Math.round((Date.now() - tempoInicioRota) / 1000);
                 const min = Math.floor(tempoTotalSegundos / 60);
                 const seg = tempoTotalSegundos % 60;
@@ -479,16 +493,46 @@
         function carregarMemoria() {
             const p = localStorage.getItem('scout_pinos');
             const r = localStorage.getItem('scout_rotas');
+            const ativa = localStorage.getItem('scout_rota_ativa'); // Resgata rota em andamento
+
             if (p) pinosData = JSON.parse(p);
             if (r) rotasData = JSON.parse(r);
             desenharPinosMapa();
             desenharRotasMapa();
+
+            // Restaura estado de gravação caso a tela tenha bloqueado
+            if (ativa) {
+                try {
+                    const estado = JSON.parse(ativa);
+                    isGravandoRota = true;
+                    caminhoAtual = estado.caminhoAtual || [];
+                    distanciaRotaAtual = estado.distanciaRotaAtual || 0;
+                    tempoInicioRota = estado.tempoInicioRota || Date.now();
+                    lastPosForDistance = estado.lastPosForDistance || null;
+
+                    // Redesenha a linha no mapa
+                    linhaAtual = L.polyline(caminhoAtual, { color: '#ff4444', weight: 5, dashArray: '5, 5' }).addTo(rotaLayer);
+                    
+                    // Ajusta UI
+                    document.getElementById('btn-rota').classList.add('gravando');
+                    document.getElementById('icone-rota').innerText = '⏹️';
+                } catch(e) {
+                    localStorage.removeItem('scout_rota_ativa');
+                }
+            }
         }
 
         function limparTudo() {
             if (confirm("Apagar todo o Banco de Dados do navegador?")) {
-                pinosData = []; rotasData = []; salvarMemoria();
+                pinosData = []; rotasData = []; 
+                salvarMemoria();
+                localStorage.removeItem('scout_rota_ativa');
                 pinoLayer.clearLayers(); rotaLayer.clearLayers();
+                if(linhaAtual) rotaLayer.removeLayer(linhaAtual);
+                isGravandoRota = false;
+                document.getElementById('btn-rota').classList.remove('gravando');
+                document.getElementById('icone-rota').innerText = '🔴';
+                document.getElementById('texto-rota').innerText = 'GRAVAR ROTA';
                 document.getElementById('modal-relatorio').style.display='none';
             }
         }
@@ -513,7 +557,6 @@
             reader.onload = function(e) {
                 try {
                     const dadosImportados = JSON.parse(e.target.result);
-                    // O MERGE ACONTECE AQUI
                     if (dadosImportados.pinos || dadosImportados.rotas) {
                         if (dadosImportados.pinos) pinosData = pinosData.concat(dadosImportados.pinos);
                         if (dadosImportados.rotas) rotasData = rotasData.concat(dadosImportados.rotas);
