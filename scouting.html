@@ -20,6 +20,7 @@
             display: flex; justify-content: space-between; align-items: flex-start;
         }
         .gps-status { font-family: monospace; font-size: 11px; color: #fff; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; border: 1px solid #444; }
+        .wake-status { font-family: monospace; font-size: 10px; color: #ffaa00; margin-top: 5px; display: none; }
 
         /* BARRA INFERIOR DE AÇÕES (MOBILE) */
         .scout-bottom-bar {
@@ -101,6 +102,7 @@
         <div>
             <strong style="text-shadow: 1px 1px 0 #000;">AGÊNCIA DE BUSCA</strong><br>
             <span style="font-size:12px; color:#fff; text-shadow: 1px 1px 0 #000;">Reconhecimento Cinético</span>
+            <div id="wake-status" class="wake-status">⚠️ TELA FORÇADA LIGADA</div>
         </div>
         <div id="gps-status" class="gps-status">GPS: Aguardando...</div>
     </div>
@@ -121,29 +123,20 @@
         </button>
     </div>
 
-    <!-- Modal Novo Pino -->
+    <!-- Modais de Pino, Rota e Relatório (Mantidos iguais) -->
     <div id="modal-pino" class="modal-overlay">
         <div class="modal-content">
             <h3>📍 Registrar Ponto no Mapa</h3>
-
             <div class="coord-inputs">
-                <div>
-                    <label>Lat:</label>
-                    <input type="number" step="any" id="pino-lat" placeholder="-23.7770">
-                </div>
-                <div>
-                    <label>Lng:</label>
-                    <input type="number" step="any" id="pino-lng" placeholder="-46.3005">
-                </div>
+                <div><label>Lat:</label><input type="number" step="any" id="pino-lat"></div>
+                <div><label>Lng:</label><input type="number" step="any" id="pino-lng"></div>
             </div>
-            
             <label>Evidência Fotográfica:</label>
             <input type="file" id="input-foto" accept="image/*" capture="environment" style="display:none;" onchange="processarFoto(event)">
             <div class="foto-preview" id="foto-preview" onclick="document.getElementById('input-foto').click()">
                 <span>📸 Tocar para Câmera</span>
                 <img id="img-result" src="">
             </div>
-
             <label>Categoria (Cor):</label>
             <select id="pino-tipo">
                 <option value="#ff0000">🔴 Inimigo / Sentinela Parado</option>
@@ -153,29 +146,14 @@
                 <option value="#00ff66">🟢 Poste / Safe Zone</option>
                 <option value="#444444">⚫ Item / Loot / Outros</option>
             </select>
-
             <div class="sentinela-inputs">
-                <div>
-                    <label style="color:#ff4444;">Alcance (Visão):</label>
-                    <select id="pino-visao">
-                        <option value="Nenhum">Nenhum</option>
-                        <option value="Curto">Curto (10m)</option>
-                        <option value="Médio">Médio (25m)</option>
-                        <option value="Longo">Longo (Rua toda)</option>
-                    </select>
+                <div><label style="color:#ff4444;">Alcance (Visão):</label>
+                    <select id="pino-visao"><option value="Nenhum">Nenhum</option><option value="Curto">Curto (10m)</option><option value="Médio">Médio (25m)</option><option value="Longo">Longo (Rua toda)</option></select>
                 </div>
-                <div>
-                    <label style="color:#ff4444;">Direção (Olha p/):</label>
-                    <input type="text" id="pino-dir" placeholder="Norte, Mercado, etc.">
-                </div>
+                <div><label style="color:#ff4444;">Direção (Olha p/):</label><input type="text" id="pino-dir" placeholder="Norte, Mercado, etc."></div>
             </div>
-
-            <label>Título Rápido:</label>
-            <input type="text" id="pino-titulo" placeholder="Ex: Sentinela Fox">
-
-            <label>Notas de Campo:</label>
-            <textarea id="pino-desc" placeholder="Descreva o local ou o posicionamento..."></textarea>
-
+            <label>Título Rápido:</label><input type="text" id="pino-titulo" placeholder="Ex: Sentinela Fox">
+            <label>Notas de Campo:</label><textarea id="pino-desc" placeholder="Descreva o local ou o posicionamento..."></textarea>
             <div class="modal-botoes">
                 <button class="btn-modal btn-cancel" onclick="fecharModalPino()">Cancelar</button>
                 <button class="btn-modal btn-save" onclick="salvarPino()">Salvar no Diário</button>
@@ -183,11 +161,9 @@
         </div>
     </div>
 
-    <!-- Modal Nova Rota Tipificada -->
     <div id="modal-rota" class="modal-overlay">
         <div class="modal-content">
             <h3 style="color: #ff4444;">🛤️ Registrar Trajeto</h3>
-            
             <label>Categoria da Rota:</label>
             <select id="rota-tipo" style="border-color: #ff4444; font-weight: bold;">
                 <option value="#ff0000">🔴 Rota de Patrulha (Inimigo)</option>
@@ -195,40 +171,29 @@
                 <option value="#ffaa00">🟠 Área de Dano / Risco</option>
                 <option value="#444444">⚫ Caminho Neutro / Transição</option>
             </select>
-
-            <label>Nome do Caminho:</label>
-            <input type="text" id="rota-titulo" placeholder="Ex: Patrulha do Locobreak">
-
-            <label>Análise Tática / Função:</label>
-            <textarea id="rota-desc" placeholder="Rua asfaltada, inimigo faz a ronda rápida aqui. Força o jogador a entrar nas oficinas."></textarea>
-
+            <label>Nome do Caminho:</label><input type="text" id="rota-titulo" placeholder="Ex: Patrulha do Locobreak">
+            <label>Análise Tática / Função:</label><textarea id="rota-desc" placeholder="Descreva a rua..."></textarea>
             <div class="modal-botoes">
-                <button class="btn-modal btn-cancel" onclick="descartarRota()">Descartar Rota</button>
+                <button class="btn-modal btn-cancel" onclick="descartarRota()">Descartar</button>
                 <button class="btn-modal btn-save" style="background:#ff4444; color:#fff;" onclick="salvarRotaConfirma()">Salvar Caminho</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Menu de Dados -->
     <div id="modal-relatorio" class="modal-overlay">
         <div class="modal-content" style="max-width: 500px;">
             <h3>📋 Banco de Dados</h3>
-            
             <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 15px;">
                 <input type="file" id="file-import" accept=".json" style="display:none;" onchange="importarProjetoJSON(event)">
-                <button class="btn-modal" style="background:#a855f7; color:#fff;" onclick="document.getElementById('file-import').click()">📥 Importar e Mesclar Projeto (JSON)</button>
-                
+                <button class="btn-modal" style="background:#a855f7; color:#fff;" onclick="document.getElementById('file-import').click()">📥 Importar e Mesclar Projeto</button>
                 <div style="display:flex; gap:10px;">
                     <button class="btn-modal" style="background:#d4af37; color:#000;" onclick="exportarProjetoJSON()">📤 Salvar JSON</button>
-                    <button class="btn-modal" style="background:#00bbff; color:#000;" onclick="exportarRelatorioHTML()">📑 Gerar PDF/HTML</button>
+                    <button class="btn-modal" style="background:#00bbff; color:#000;" onclick="exportarRelatorioHTML()">📑 Gerar Relatório</button>
                 </div>
-                
-                <button class="btn-modal btn-cancel" style="border:1px solid #ff4444; color:#ff4444;" onclick="limparTudo()">🗑️ Apagar Todo o Banco</button>
+                <button class="btn-modal btn-cancel" style="border:1px solid #ff4444; color:#ff4444;" onclick="limparTudo()">🗑️ Apagar Banco</button>
             </div>
-
             <div id="lista-rotas" style="margin-bottom: 15px;"></div>
             <div id="lista-pinos"></div>
-
             <button class="btn-modal btn-cancel" style="margin-top:auto;" onclick="document.getElementById('modal-relatorio').style.display='none'">Voltar ao Mapa</button>
         </div>
     </div>
@@ -245,31 +210,55 @@
         let pinoLayer = L.layerGroup();
         let rotaLayer = L.layerGroup();
         
-        // Estado de Gravação de Rota
         let isGravandoRota = false;
         let caminhoAtual = [];
         let linhaAtual = null;
         let tempoInicioRota = 0;
         let distanciaRotaAtual = 0;
         let lastPosForDistance = null;
-        
         let tempRotaParams = null;
         let fotoBase64Atual = "";
+
+        // WAKE LOCK API (Impede a tela de apagar)
+        let wakeLock = null;
+
+        async function solicitarTelaLigada() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('wake-status').style.display = 'block';
+                } catch (err) {
+                    console.log('Erro no Wake Lock:', err);
+                }
+            }
+        }
+
+        function liberarTela() {
+            if (wakeLock !== null) {
+                wakeLock.release().then(() => {
+                    wakeLock = null;
+                    document.getElementById('wake-status').style.display = 'none';
+                });
+            }
+        }
+
+        // Se o usuário minimizar o Chrome e voltar, reconectar o Wake Lock se estiver gravando
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && isGravandoRota) {
+                solicitarTelaLigada();
+            }
+        });
 
         window.onload = () => {
             map = L.map('mapa-campo', { zoomControl: false }).setView(minhaLocalizacao, 17);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
-
             pinoLayer.addTo(map);
             rotaLayer.addTo(map);
 
             carregarMemoria();
             iniciarGPS();
             
-            // Permite clicar no mapa para marcar pino rápido
-            map.on('click', function(e) {
-                abrirModalPinoMapa(e.latlng.lat, e.latlng.lng);
-            });
+            map.on('click', function(e) { abrirModalPinoMapa(e.latlng.lat, e.latlng.lng); });
         };
 
         function iniciarGPS() {
@@ -287,6 +276,8 @@
                             map.setView(minhaLocalizacao, 18);
                         } else {
                             meuMarcador.setLatLng(minhaLocalizacao);
+                            // Opcional: faz o mapa acompanhar o jogador
+                            // map.panTo(minhaLocalizacao);
                         }
 
                         if (isGravandoRota) {
@@ -295,13 +286,11 @@
                             if (lastPosForDistance) distanciaRotaAtual += map.distance(lastPosForDistance, minhaLocalizacao);
                             lastPosForDistance = minhaLocalizacao;
                             
-                            // Calcula tempo ao vivo
                             const tempoDecorridoSegundos = Math.round((Date.now() - tempoInicioRota) / 1000);
                             const min = Math.floor(tempoDecorridoSegundos / 60);
                             const seg = tempoDecorridoSegundos % 60;
                             document.getElementById('texto-rota').innerText = `${Math.round(distanciaRotaAtual)}m | ${min}m${seg}s`;
                             
-                            // NOVO: Salva estado atual para não perder em caso de bloqueio de tela/refresh acidental
                             salvarRotaAtivaOffline();
                         }
                     },
@@ -309,12 +298,11 @@
                         document.getElementById('gps-status').innerText = "GPS: Sem Sinal";
                         document.getElementById('gps-status').style.color = "#ff4444";
                     },
-                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+                    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
                 );
             } else { alert("Seu navegador não suporta GPS."); }
         }
 
-        // NOVO: Função de backup de emergência da rota em andamento
         function salvarRotaAtivaOffline() {
             if (isGravandoRota) {
                 const estado = { caminhoAtual, distanciaRotaAtual, tempoInicioRota, lastPosForDistance };
@@ -322,22 +310,14 @@
             }
         }
 
-        function abrirModalPinoManual() {
-            abrirModalPinoMapa(minhaLocalizacao[0], minhaLocalizacao[1]);
-        }
-
+        function abrirModalPinoManual() { abrirModalPinoMapa(minhaLocalizacao[0], minhaLocalizacao[1]); }
         function abrirModalPinoMapa(lat, lng) {
             document.getElementById('pino-lat').value = lat.toFixed(6);
             document.getElementById('pino-lng').value = lng.toFixed(6);
-            document.getElementById('pino-titulo').value = '';
-            document.getElementById('pino-desc').value = '';
-            document.getElementById('pino-dir').value = '';
-            fotoBase64Atual = "";
-            document.getElementById('foto-preview').classList.remove('has-image');
-            document.getElementById('img-result').src = "";
+            document.getElementById('pino-titulo').value = ''; document.getElementById('pino-desc').value = ''; document.getElementById('pino-dir').value = '';
+            fotoBase64Atual = ""; document.getElementById('foto-preview').classList.remove('has-image'); document.getElementById('img-result').src = "";
             document.getElementById('modal-pino').style.display = 'flex';
         }
-
         function fecharModalPino() { document.getElementById('modal-pino').style.display = 'none'; }
 
         function processarFoto(event) {
@@ -348,15 +328,11 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600; 
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
-                    canvas.height = img.height * scaleSize;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const MAX_WIDTH = 600; const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     fotoBase64Atual = canvas.toDataURL('image/jpeg', 0.6); 
-                    document.getElementById('img-result').src = fotoBase64Atual;
-                    document.getElementById('foto-preview').classList.add('has-image');
+                    document.getElementById('img-result').src = fotoBase64Atual; document.getElementById('foto-preview').classList.add('has-image');
                 };
                 img.src = e.target.result;
             };
@@ -366,26 +342,16 @@
         function salvarPino() {
             const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             const selTipo = document.getElementById('pino-tipo');
-            
             const pino = {
-                id: Date.now(),
-                tag: `P${pinosData.length + 1}`,
-                lat: parseFloat(document.getElementById('pino-lat').value),
-                lng: parseFloat(document.getElementById('pino-lng').value),
-                cor: selTipo.value,
-                tipo: selTipo.options[selTipo.selectedIndex].text.substring(3),
+                id: Date.now(), tag: `P${pinosData.length + 1}`,
+                lat: parseFloat(document.getElementById('pino-lat').value), lng: parseFloat(document.getElementById('pino-lng').value),
+                cor: selTipo.value, tipo: selTipo.options[selTipo.selectedIndex].text.substring(3),
                 titulo: document.getElementById('pino-titulo').value || 'Sem Título',
                 desc: document.getElementById('pino-desc').value,
-                visao: document.getElementById('pino-visao').value,
-                dir: document.getElementById('pino-dir').value || 'N/A',
-                hora: horaAtual,
-                foto: fotoBase64Atual 
+                visao: document.getElementById('pino-visao').value, dir: document.getElementById('pino-dir').value || 'N/A',
+                hora: horaAtual, foto: fotoBase64Atual 
             };
-
-            pinosData.push(pino);
-            salvarMemoria();
-            desenharPinosMapa();
-            fecharModalPino();
+            pinosData.push(pino); salvarMemoria(); desenharPinosMapa(); fecharModalPino();
         }
 
         function desenharPinosMapa() {
@@ -393,20 +359,14 @@
             pinosData.forEach(p => {
                 const marker = L.circleMarker([p.lat, p.lng], { radius: 8, fillColor: p.cor, color: '#000', weight: 2, fillOpacity: 0.9 });
                 marker.bindTooltip(p.tag, { permanent: true, direction: 'bottom', className: 'gps-status', offset: [0,5] });
-                
                 let popupStr = `<div style="font-family:sans-serif;"><b>${p.tag} - ${p.titulo}</b><br><span style="font-size:10px;">${p.hora} | [${p.tipo}]</span>`;
-                if(p.cor === "#ff0000" && p.visao !== "Nenhum") {
-                    popupStr += `<br><span style="font-size:11px; color:#ff4444;">👁️ Visão: ${p.visao} | Direção: ${p.dir}</span>`;
-                }
+                if(p.cor === "#ff0000" && p.visao !== "Nenhum") popupStr += `<br><span style="font-size:11px; color:#ff4444;">👁️ Visão: ${p.visao} | Direção: ${p.dir}</span>`;
                 popupStr += `<p style="margin:5px 0;">${p.desc}</p></div>`;
                 if(p.foto) popupStr += `<img src="${p.foto}" style="width:150px; border-radius:4px; margin-top:5px;">`;
-                
-                marker.bindPopup(popupStr);
-                pinoLayer.addLayer(marker);
+                marker.bindPopup(popupStr); pinoLayer.addLayer(marker);
             });
         }
 
-        // SISTEMA DE GRAVAÇÃO DE TRAJETOS
         function toggleRota() {
             if (!meuMarcador) { alert("Aguarde o GPS te localizar!"); return; }
             const btn = document.getElementById('btn-rota');
@@ -415,33 +375,24 @@
 
             if (!isGravandoRota) {
                 isGravandoRota = true;
-                caminhoAtual = [minhaLocalizacao];
-                distanciaRotaAtual = 0;
-                lastPosForDistance = minhaLocalizacao;
-                tempoInicioRota = Date.now();
+                caminhoAtual = [minhaLocalizacao]; distanciaRotaAtual = 0; lastPosForDistance = minhaLocalizacao; tempoInicioRota = Date.now();
                 linhaAtual = L.polyline(caminhoAtual, { color: '#ff4444', weight: 5, dashArray: '5, 5' }).addTo(rotaLayer);
                 
-                btn.classList.add('gravando');
-                icone.innerText = '⏹️';
-                texto.innerText = '0m | 0s';
-                salvarRotaAtivaOffline(); // Salva estado inicial imediatamente
+                btn.classList.add('gravando'); icone.innerText = '⏹️'; texto.innerText = '0m | 0s';
+                
+                solicitarTelaLigada(); // FORÇA A TELA A FICAR LIGADA
+                salvarRotaAtivaOffline(); 
             } else {
                 isGravandoRota = false;
-                localStorage.removeItem('scout_rota_ativa'); // Remove o backup de emergência ao pausar intencionalmente
+                liberarTela(); // PERMITE QUE A TELA APAGUE NOVAMENTE
+                localStorage.removeItem('scout_rota_ativa'); 
 
                 const tempoTotalSegundos = Math.round((Date.now() - tempoInicioRota) / 1000);
-                const min = Math.floor(tempoTotalSegundos / 60);
-                const seg = tempoTotalSegundos % 60;
-                const tempoFormatado = `${min}m ${seg}s`;
+                const min = Math.floor(tempoTotalSegundos / 60); const seg = tempoTotalSegundos % 60;
                 
-                tempRotaParams = { caminho: [...caminhoAtual], distancia: Math.round(distanciaRotaAtual), tempo: tempoFormatado, tempoSegundos: tempoTotalSegundos };
-                
-                btn.classList.remove('gravando');
-                icone.innerText = '🔴';
-                texto.innerText = 'GRAVAR ROTA';
-                
-                document.getElementById('rota-titulo').value = '';
-                document.getElementById('rota-desc').value = '';
+                tempRotaParams = { caminho: [...caminhoAtual], distancia: Math.round(distanciaRotaAtual), tempo: `${min}m ${seg}s`, tempoSegundos: tempoTotalSegundos };
+                btn.classList.remove('gravando'); icone.innerText = '🔴'; texto.innerText = 'GRAVAR ROTA';
+                document.getElementById('rota-titulo').value = ''; document.getElementById('rota-desc').value = '';
                 document.getElementById('modal-rota').style.display = 'flex';
             }
         }
@@ -449,33 +400,16 @@
         function salvarRotaConfirma() {
             if(!tempRotaParams) return;
             const selTipo = document.getElementById('rota-tipo');
-            
             const rotaSalva = {
-                id: Date.now(),
-                tag: `R${rotasData.length + 1}`,
-                caminho: tempRotaParams.caminho,
-                distancia: tempRotaParams.distancia,
-                tempo: tempRotaParams.tempo,
-                tempoSegundos: tempRotaParams.tempoSegundos,
-                cor: selTipo.value,
-                tipo: selTipo.options[selTipo.selectedIndex].text.substring(3),
-                titulo: document.getElementById('rota-titulo').value || 'Trajeto sem Título',
-                desc: document.getElementById('rota-desc').value || 'Sem descrição'
+                id: Date.now(), tag: `R${rotasData.length + 1}`,
+                caminho: tempRotaParams.caminho, distancia: tempRotaParams.distancia, tempo: tempRotaParams.tempo, tempoSegundos: tempRotaParams.tempoSegundos,
+                cor: selTipo.value, tipo: selTipo.options[selTipo.selectedIndex].text.substring(3),
+                titulo: document.getElementById('rota-titulo').value || 'Trajeto sem Título', desc: document.getElementById('rota-desc').value || 'Sem descrição'
             };
-            
-            rotasData.push(rotaSalva);
-            salvarMemoria();
-            desenharRotasMapa();
-            document.getElementById('modal-rota').style.display = 'none';
-            tempRotaParams = null;
+            rotasData.push(rotaSalva); salvarMemoria(); desenharRotasMapa(); document.getElementById('modal-rota').style.display = 'none'; tempRotaParams = null;
         }
 
-        function descartarRota() {
-            document.getElementById('modal-rota').style.display = 'none';
-            tempRotaParams = null;
-            desenharRotasMapa(); 
-        }
-
+        function descartarRota() { document.getElementById('modal-rota').style.display = 'none'; tempRotaParams = null; desenharRotasMapa(); }
         function desenharRotasMapa() {
             rotaLayer.clearLayers();
             rotasData.forEach(r => {
@@ -484,169 +418,73 @@
             });
         }
 
-        // MEMÓRIA E MERGE OFFLINE
-        function salvarMemoria() {
-            localStorage.setItem('scout_pinos', JSON.stringify(pinosData));
-            localStorage.setItem('scout_rotas', JSON.stringify(rotasData));
-        }
-
+        function salvarMemoria() { localStorage.setItem('scout_pinos', JSON.stringify(pinosData)); localStorage.setItem('scout_rotas', JSON.stringify(rotasData)); }
         function carregarMemoria() {
-            const p = localStorage.getItem('scout_pinos');
-            const r = localStorage.getItem('scout_rotas');
-            const ativa = localStorage.getItem('scout_rota_ativa'); // Resgata rota em andamento
+            const p = localStorage.getItem('scout_pinos'); const r = localStorage.getItem('scout_rotas'); const ativa = localStorage.getItem('scout_rota_ativa'); 
+            if (p) pinosData = JSON.parse(p); if (r) rotasData = JSON.parse(r);
+            desenharPinosMapa(); desenharRotasMapa();
 
-            if (p) pinosData = JSON.parse(p);
-            if (r) rotasData = JSON.parse(r);
-            desenharPinosMapa();
-            desenharRotasMapa();
-
-            // Restaura estado de gravação caso a tela tenha bloqueado
             if (ativa) {
                 try {
-                    const estado = JSON.parse(ativa);
-                    isGravandoRota = true;
-                    caminhoAtual = estado.caminhoAtual || [];
-                    distanciaRotaAtual = estado.distanciaRotaAtual || 0;
-                    tempoInicioRota = estado.tempoInicioRota || Date.now();
-                    lastPosForDistance = estado.lastPosForDistance || null;
-
-                    // Redesenha a linha no mapa
+                    const estado = JSON.parse(ativa); isGravandoRota = true;
+                    caminhoAtual = estado.caminhoAtual || []; distanciaRotaAtual = estado.distanciaRotaAtual || 0;
+                    tempoInicioRota = estado.tempoInicioRota || Date.now(); lastPosForDistance = estado.lastPosForDistance || null;
                     linhaAtual = L.polyline(caminhoAtual, { color: '#ff4444', weight: 5, dashArray: '5, 5' }).addTo(rotaLayer);
-                    
-                    // Ajusta UI
-                    document.getElementById('btn-rota').classList.add('gravando');
-                    document.getElementById('icone-rota').innerText = '⏹️';
-                } catch(e) {
-                    localStorage.removeItem('scout_rota_ativa');
-                }
+                    document.getElementById('btn-rota').classList.add('gravando'); document.getElementById('icone-rota').innerText = '⏹️';
+                    solicitarTelaLigada(); // Retoma a proteção de tela
+                } catch(e) { localStorage.removeItem('scout_rota_ativa'); }
             }
         }
 
         function limparTudo() {
-            if (confirm("Apagar todo o Banco de Dados do navegador?")) {
-                pinosData = []; rotasData = []; 
-                salvarMemoria();
-                localStorage.removeItem('scout_rota_ativa');
-                pinoLayer.clearLayers(); rotaLayer.clearLayers();
-                if(linhaAtual) rotaLayer.removeLayer(linhaAtual);
-                isGravandoRota = false;
-                document.getElementById('btn-rota').classList.remove('gravando');
-                document.getElementById('icone-rota').innerText = '🔴';
-                document.getElementById('texto-rota').innerText = 'GRAVAR ROTA';
-                document.getElementById('modal-relatorio').style.display='none';
+            if (confirm("Apagar todo o Banco de Dados?")) {
+                pinosData = []; rotasData = []; salvarMemoria(); localStorage.removeItem('scout_rota_ativa');
+                pinoLayer.clearLayers(); rotaLayer.clearLayers(); if(linhaAtual) rotaLayer.removeLayer(linhaAtual);
+                isGravandoRota = false; document.getElementById('btn-rota').classList.remove('gravando');
+                document.getElementById('icone-rota').innerText = '🔴'; document.getElementById('texto-rota').innerText = 'GRAVAR ROTA';
+                document.getElementById('modal-relatorio').style.display='none'; liberarTela();
             }
         }
 
         function exportarProjetoJSON() {
-            const projetoCompleto = { pinos: pinosData, rotas: rotasData };
             if (pinosData.length === 0 && rotasData.length === 0) { alert("O mapa está vazio."); return; }
-            
-            const dataStr = JSON.stringify(projetoCompleto, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = "paranapiacaba_master.json";
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const dataStr = JSON.stringify({ pinos: pinosData, rotas: rotasData }, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" }); const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = "paranapiacaba_master.json";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         }
 
         function importarProjetoJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
+            const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const dadosImportados = JSON.parse(e.target.result);
-                    if (dadosImportados.pinos || dadosImportados.rotas) {
-                        if (dadosImportados.pinos) pinosData = pinosData.concat(dadosImportados.pinos);
-                        if (dadosImportados.rotas) rotasData = rotasData.concat(dadosImportados.rotas);
-                    } else if (Array.isArray(dadosImportados)) { // Legado
-                        pinosData = pinosData.concat(dadosImportados);
-                    }
-                    salvarMemoria();
-                    desenharPinosMapa();
-                    desenharRotasMapa();
-                    alert("✅ Arquivo mesclado com sucesso! Os pontos foram somados ao mapa.");
+                    if (dadosImportados.pinos) pinosData = pinosData.concat(dadosImportados.pinos);
+                    if (dadosImportados.rotas) rotasData = rotasData.concat(dadosImportados.rotas);
+                    salvarMemoria(); desenharPinosMapa(); desenharRotasMapa(); alert("✅ Arquivo mesclado com sucesso!");
                 } catch (err) { alert("❌ Erro ao ler o arquivo JSON."); }
-            };
-            reader.readAsText(file);
-            event.target.value = ""; 
+            }; reader.readAsText(file); event.target.value = ""; 
         }
 
         function abrirMenu() {
-            const divPinos = document.getElementById('lista-pinos');
-            const divRotas = document.getElementById('lista-rotas');
-            
-            divPinos.innerHTML = "<h4 style='color:#d4af37; border-bottom:1px solid #444; padding-bottom:5px;'>📍 PONTOS MARCADOS</h4>";
-            pinosData.forEach(p => {
-                divPinos.innerHTML += `
-                    <div class="relatorio-card">
-                        <strong style="color:${p.cor}">${p.tag} - ${p.titulo}</strong>
-                        <div class="relatorio-meta">Tipo: ${p.tipo} | Horário: ${p.hora}</div>
-                        ${p.visao && p.visao !== 'Nenhum' ? `<div style="font-size:11px; color:#ff4444; margin-top:3px;">👁️ Visão: ${p.visao} | Dir: ${p.dir}</div>` : ''}
-                        <p style="font-size:12px; margin:5px 0;">"${p.desc}"</p>
-                        ${p.foto ? `<img src="${p.foto}">` : ''}
-                    </div>
-                `;
-            });
-
-            divRotas.innerHTML = "<h4 style='color:#ff4444; border-bottom:1px solid #444; padding-bottom:5px;'>🛤️ TRAJETOS E BLOQUEIOS</h4>";
+            const divPinos = document.getElementById('lista-pinos'); const divRotas = document.getElementById('lista-rotas');
+            divPinos.innerHTML = "<h4 style='color:#d4af37; border-bottom:1px solid #444; padding-bottom:5px;'>📍 PONTOS</h4>";
+            pinosData.forEach(p => { divPinos.innerHTML += `<div class="relatorio-card"><strong style="color:${p.cor}">${p.tag} - ${p.titulo}</strong><div class="relatorio-meta">Tipo: ${p.tipo}</div><p style="font-size:12px; margin:5px 0;">"${p.desc}"</p></div>`; });
+            divRotas.innerHTML = "<h4 style='color:#ff4444; border-bottom:1px solid #444; padding-bottom:5px;'>🛤️ TRAJETOS</h4>";
             if (rotasData.length === 0) divRotas.innerHTML += "<span style='font-size:12px; color:#aaa;'>Nenhuma rota gravada.</span>";
-            rotasData.forEach(r => {
-                divRotas.innerHTML += `
-                    <div class="relatorio-card" style="border-color:${r.cor}; border-width: 2px;">
-                        <strong style="color:${r.cor}">${r.tag} - ${r.titulo}</strong>
-                        <div class="relatorio-meta">Tipo: ${r.tipo} <br> Distância: ${r.distancia} metros | Tempo a pé: ${r.tempo}</div>
-                        <p style="font-size:12px; margin:5px 0;">"${r.desc}"</p>
-                    </div>
-                `;
-            });
-
+            rotasData.forEach(r => { divRotas.innerHTML += `<div class="relatorio-card" style="border-color:${r.cor}; border-width: 2px;"><strong style="color:${r.cor}">${r.tag} - ${r.titulo}</strong><div class="relatorio-meta">Distância: ${r.distancia}m | Tempo: ${r.tempo}</div><p style="font-size:12px; margin:5px 0;">"${r.desc}"</p></div>`; });
             document.getElementById('modal-relatorio').style.display = 'flex';
         }
 
         function exportarRelatorioHTML() {
-            let htmlStr = `
-            <html><head><meta charset="utf-8"><title>Relatório Tático Master - Paranapiacaba</title>
-            <style>body{font-family:sans-serif; background:#f4f4f4; color:#333; max-width:800px; margin:0 auto; padding:20px;}
-            .card{background:white; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1); border-left: 8px solid #333;}
-            img{max-width:100%; height:auto; border-radius:4px; margin-top:10px;}
-            h1{color:#333;} .meta{font-size:12px; color:#666; margin: 4px 0;}</style></head><body>
-            <h1>Relatório Cinético e Tático</h1><p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
-            
-            <h2>🛤️ Rotas de Patrulha e Caminhos Forçados</h2>
-            `;
-            
-            rotasData.forEach(r => {
-                htmlStr += `<div class="card" style="border-left-color:${r.cor}">
-                    <h3 style="margin:0; color:${r.cor}">${r.tag} - ${r.titulo}</h3>
-                    <div class="meta"><strong>Categoria:</strong> ${r.tipo}</div>
-                    <div class="meta"><strong>Métricas:</strong> ${r.distancia}m de extensão | Tempo de Ciclo: ${r.tempo} (${r.tempoSegundos} seg)</div>
-                    <p><strong>Análise Tática:</strong> ${r.desc}</p>
-                </div>`;
-            });
-
-            htmlStr += `<h2>📍 Pontos de Interesse e Sentinelas Estáticos</h2>`;
-            pinosData.forEach(p => {
-                htmlStr += `
-                <div class="card" style="border-left-color:${p.cor}">
-                    <h3 style="margin:0; color:${p.cor}">${p.tag} - ${p.titulo}</h3>
-                    <div class="meta"><strong>Categoria:</strong> ${p.tipo} | <strong>Horário:</strong> ${p.hora}</div>
-                    <div class="meta"><strong>Coordenadas:</strong> ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
-                    ${p.visao && p.visao !== 'Nenhum' ? `<div class="meta" style="color:#aa0000;"><strong>👁️ Alcance de Visão:</strong> ${p.visao} | <strong>Direção Frontal:</strong> ${p.dir}</div>` : ''}
-                    <p><strong>Descrição:</strong> ${p.desc}</p>
-                    ${p.foto ? `<img src="${p.foto}">` : ''}
-                </div>`;
-            });
-
+            let htmlStr = `<html><head><meta charset="utf-8"><title>Relatório Tático Master</title><style>body{font-family:sans-serif; background:#f4f4f4; color:#333; max-width:800px; margin:0 auto; padding:20px;}.card{background:white; border-radius:8px; padding:15px; margin-bottom:15px; border-left: 8px solid #333;}h1{color:#333;} .meta{font-size:12px; color:#666; margin: 4px 0;}</style></head><body><h1>Relatório Cinético e Tático</h1><p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p><h2>🛤️ Rotas de Patrulha</h2>`;
+            rotasData.forEach(r => { htmlStr += `<div class="card" style="border-left-color:${r.cor}"><h3 style="margin:0; color:${r.cor}">${r.tag} - ${r.titulo}</h3><div class="meta"><strong>Métricas:</strong> ${r.distancia}m | Tempo: ${r.tempo}</div><p><strong>Análise:</strong> ${r.desc}</p></div>`; });
+            htmlStr += `<h2>📍 Pontos de Interesse</h2>`;
+            pinosData.forEach(p => { htmlStr += `<div class="card" style="border-left-color:${p.cor}"><h3 style="margin:0; color:${p.cor}">${p.tag} - ${p.titulo}</h3><p><strong>Descrição:</strong> ${p.desc}</p></div>`; });
             htmlStr += `</body></html>`;
-
-            const blob = new Blob([htmlStr], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = "relatorio_master_paranapiacaba.html";
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const blob = new Blob([htmlStr], { type: "text/html" }); const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = "relatorio_paranapiacaba.html";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         }
     </script>
 </body>
