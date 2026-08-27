@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calibrador Tático - Paranapiacaba</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <div id="alerta" class="alerta-aggro">⚠️ INIMIGO DETECTOU VOCÊ ⚠️</div>
+
+    <div id="radar-container">
+        <canvas id="radarCanvas" width="140" height="140"></canvas>
+    </div>
+
+    <div id="painel-lateral" class="painel-lateral"></div>
+
+    <div id="mapa"></div>
+
+    <div class="painel-calibracao">
+        <div class="header" id="btn-toggle-painel">
+            <span class="status-gps" id="txt-gps">GPS: Aguardando...</span>
+            <span class="status-inimigo">MODO CRIAÇÃO</span>
+            <span class="toggle-icon" id="icone-toggle">🔽</span>
+        </div>
+
+        <div class="painel-conteudo" id="painel-conteudo">
+            <button id="btn-desenhar" class="btn-acao btn-rota">✏️ 1º - Desenhar Rota / Área</button>
+
+            <div class="controle-grupo" style="margin-bottom: 10px;">
+                <label>TIPO DE ENTIDADE:</label>
+                <select id="tipo-inimigo-criacao">
+                    <option value="fiscal">🔴 Fiscal de Ferro (Patrulha)</option>
+                    <option value="screamer">🟣 Atormentado (Rastro Letal)</option>
+                    <option value="guarda">🟡 Guarda Fixo (Sentinela)</option>
+                    <option value="hound_master">🟠 Fiscal c/ Cães (Matilha)</option>
+                    <option value="cao_corrente">🟢 Cão de Base (Acorrentado)</option>
+                    <option value="saqueador">⚫ Saqueador (Fuga/Ladrão)</option>
+                    <option value="obstaculo">🧱 Parede / Obstáculo Físico</option>
+                </select>
+            </div>
+
+            <div class="controles" id="grupo-velocidades">
+                <div class="controle-grupo">
+                    <label>PATRULHA: <span id="val-patrulha">0.5</span> m/s</label>
+                    <input type="range" id="vel-patrulha" min="0.1" max="10.0" step="0.1" value="0.5">
+                </div>
+                <div class="controle-grupo">
+                    <label>FUGA/PERSEG: <span id="val-perseg">1.3</span> m/s</label>
+                    <input type="range" id="vel-perseguicao" min="0.5" max="10.0" step="0.1" value="1.3">
+                </div>
+            </div>
+            
+            <div class="controle-grupo" id="grupo-raio" style="margin-bottom: 10px;">
+                <label>RAIO DE VISÃO/ALCANCE: <span id="val-raio">25</span> m</label>
+                <input type="range" id="raio-visao" min="5" max="150" step="1" value="25">
+            </div>
+
+            <div class="controle-grupo especial" id="grupo-rastro" style="display: none; margin-bottom: 10px;">
+                <label>TAMANHO DO RASTRO: <span id="val-rastro">300</span> pt</label>
+                <input type="range" id="tamanho-rastro" min="50" max="2500" step="50" value="300">
+            </div>
+
+            <div class="controle-grupo especial" id="grupo-direcao" style="display: none; margin-bottom: 10px;">
+                <label>DIREÇÃO (Cone Fixo): <span id="val-direcao">0</span>°</label>
+                <input type="range" id="direcao-guarda" min="0" max="360" step="15" value="0">
+            </div>
+            
+            <div class="controle-grupo especial" id="grupo-corrente" style="display: none; margin-bottom: 10px;">
+                <label>TAMANHO DA CORRENTE: <span id="val-corrente">40</span> m</label>
+                <input type="range" id="tamanho-corrente" min="10" max="100" step="5" value="40">
+            </div>
+
+            <div class="controles especial" id="grupo-faro" style="display: none; flex-wrap: wrap;">
+                <div class="controle-grupo" style="flex:1; min-width:45%;">
+                    <label>FARO CÃES: <span id="val-faro">15</span>m</label>
+                    <input type="range" id="faro-caes" min="5" max="100" step="1" value="15">
+                </div>
+                <div class="controle-grupo" style="flex:1; min-width:45%;">
+                    <label>ESPALHA: <span id="val-espalhamento">15</span>m</label>
+                    <input type="range" id="espalhamento-caes" min="5" max="40" step="1" value="15">
+                </div>
+                <div class="controle-grupo" style="flex:1; min-width:100%; margin-top:5px;">
+                    <label>ÁREA DE RONDA: <span id="val-ronda">25</span>m</label>
+                    <input type="range" id="ronda-caes" min="5" max="100" step="5" value="25">
+                </div>
+            </div>
+
+            <button id="btn-salvar" class="btn-acao">➕ 2º - GERAR ENTIDADE</button>
+        </div>
+    </div>
+
+    <!-- LEAFLET -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 1. CORE E GLOBAIS -->
+    <script src="js/core/globals.js"></script>
+    <script src="js/core/audio.js"></script>
+    <script src="js/core/math.js"></script>
+
+    <!-- 2. SISTEMAS PRINCIPAIS -->
+    <script src="js/core/radar.js"></script>
+    <script src="js/core/gps.js"></script>
+    
+    <!-- 3. ENTIDADES E MONSTROS -->
+    <script src="js/entidades/obstaculo.js"></script>
+    <script src="js/entidades/fiscal.js"></script>
+    <script src="js/entidades/screamer.js"></script>
+    <script src="js/entidades/guarda.js"></script>
+    <script src="js/entidades/cao_corrente.js"></script>
+    <script src="js/entidades/saqueador.js"></script>
+    <script src="js/entidades/matilha.js"></script>
+    
+    <!-- 4. UI E MOTOR -->
+    <script src="js/core/ui.js"></script>
+    <script src="js/core/engine.js"></script>
+
+</body>
+</html>
